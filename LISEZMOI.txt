@@ -1,0 +1,30 @@
+FOC Calculator - version web installable (iPhone / Android / PC)
+=================================================================
+
+Contenu : index.html, manifest.webmanifest, sw.js et le dossier img/.
+Ces fichiers doivent rester ensemble et être servis en HTTPS.
+
+1) Mettre en ligne (gratuit, aucun compte Apple)
+   GitHub Pages :
+     - Crée un compte sur github.com puis un dépôt public, par ex. "foc".
+     - "Add file" > "Upload files" : glisse TOUT le contenu de ce dossier
+       (pas le dossier lui-même), puis "Commit changes".
+     - Settings > Pages > Source : "Deploy from a branch", branche "main",
+       dossier "/ (root)" > Save.
+     - Au bout d'une minute, l'adresse est : https://<ton-pseudo>.github.io/foc/
+   (Netlify, Cloudflare Pages, etc. fonctionnent aussi.)
+
+2) Installer sur l'iPhone
+     - Ouvre l'adresse dans SAFARI.
+     - Bouton Partager > "Sur l'écran d'accueil" > Ajouter.
+     - L'icône FOC apparaît ; l'app s'ouvre en plein écran et marche hors ligne.
+
+   Sur Android : Chrome > menu > "Installer l'application".
+
+3) Mettre à jour
+     - Modifie les fichiers, change VERSION dans sw.js (ex. "foc-v2.2"),
+       puis remplace les fichiers en ligne. L'iPhone récupère la nouvelle
+       version à l'ouverture suivante avec du réseau.
+
+Note : ouvrir index.html directement depuis le disque (double-clic) marche
+pour tester, mais le mode hors ligne et l'installation exigent l'hébergement.

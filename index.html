@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FOC Calculator</title>
+<meta name="description" content="Calcul du FOC (Front Of Center) d'une flèche">
+<meta name="theme-color" content="#E07628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FOC">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<style>
+  :root {
+    --orange: #E07628; --orange-dark: #B85A16; --blue: #206AFF;
+    --green: #1E9E4A; --warn: #E67E22; --red: #D32F2F;
+    --muted: #6B6B6B; --placeholder: #BBBBBB; --line: #D0D0D0; --bg: #FFFFFF;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main {
+    max-width: 480px; margin: 0 auto; text-align: center;
+    padding: calc(28px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+             calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+  }
+  h1 { margin: 0; color: var(--blue); font: italic bold 28px "Times New Roman", Times, serif;
+       text-shadow: 2px 2px 4px rgba(0,0,0,.4); }
+  .sub { margin: 4px 0 24px; color: var(--muted); font-size: 18px; }
+  .field { position: relative; margin-top: 14px; text-align: left; }
+  label { display: block; font-size: 13px; color: var(--muted); }
+  input {
+    width: 100%; font-size: 20px; padding: 6px 4px 8px; border: 0; border-bottom: 2px solid var(--line);
+    background: transparent; outline: none; border-radius: 0; color: #222;
+  }
+  input:focus { border-bottom-color: var(--orange); }
+  input.bad { border-bottom-color: var(--red); }
+  .err { min-height: 18px; margin-top: 4px; font-size: 13px; color: var(--red); }
+  button {
+    margin-top: 14px; min-width: 200px; padding: 13px 24px; font-size: 18px; font-weight: 600;
+    color: #fff; background: var(--orange); border: 0; border-radius: 6px; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  }
+  button:active { background: var(--orange-dark); }
+  #result { margin-top: 22px; font-size: 40px; font-weight: 700; color: var(--placeholder); }
+  #status { min-height: 22px; margin-top: 4px; font-size: 16px; }
+  img.fleche { display: block; width: 100%; height: auto; margin-top: 24px; }
+  .formula { margin-top: 8px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>F.O.C Calculator</h1>
+  <p class="sub">10 % &lt; FOC &lt; 15 %</p>
+
+  <form id="form" novalidate autocomplete="off">
+    <div class="field">
+      <label for="a">Longueur totale (A)</label>
+      <input id="a" type="text" inputmode="decimal" enterkeyhint="next" placeholder="ex. 29">
+      <div class="err" id="errA"></div>
+    </div>
+    <div class="field">
+      <label for="b">Point d'équilibre (B)</label>
+      <input id="b" type="text" inputmode="decimal" enterkeyhint="done" placeholder="ex. 17,5">
+      <div class="err" id="errB"></div>
+    </div>
+    <button type="submit">Calcul F.O.C</button>
+  </form>
+
+  <div id="result" aria-live="polite">Résultat</div>
+  <div id="status"></div>
+
+  <img class="fleche" src="img/foc-fleche.png" alt="Mesure de la longueur A et du point d'équilibre B">
+  <div class="formula">FOC = (B − A/2) / A × 100</div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var KEY_A = "foc.longueur_totale", KEY_B = "foc.point_equilibre";
+  var $ = function (id) { return document.getElementById(id); };
+  var inA = $("a"), inB = $("b"), result = $("result"), status = $("status");
+
+  // Même formule que l'app d'origine, arrondie à 2 décimales
+  function computeFoc(a, b) { return Math.round(((b - a / 2) / a * 100) * 100) / 100; }
+
+  function parse(v) {
+    v = String(v).trim().replace(",", ".");
+    if (!/^\d*\.?\d+$|^\d+\.$/.test(v)) return null;
+    return parseFloat(v);
+  }
+
+  function setErr(input, errEl, msg) {
+    errEl.textContent = msg || "";
+    input.classList.toggle("bad", !!msg);
+  }
+
+  function showEmpty() {
+    result.textContent = "Résultat";
+    result.style.color = "var(--placeholder)";
+    status.textContent = "";
+  }
+
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+
+  function calculate() {
+    setErr(inA, $("errA")); setErr(inB, $("errB"));
+    var a = parse(inA.value), b = parse(inB.value);
+
+    if (a === null || a <= 0) { setErr(inA, $("errA"), "Saisis une longueur totale (A) supérieure à 0."); showEmpty(); return; }
+    if (b === null)           { setErr(inB, $("errB"), "Saisis le point d'équilibre (B)."); showEmpty(); return; }
+    if (b < 0 || b > a)       { setErr(inB, $("errB"), "B doit être compris entre 0 et A."); showEmpty(); return; }
+
+    var foc = computeFoc(a, b);
+    result.textContent = foc.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " %";
+
+    var msg, color;
+    if (foc < 10)      { msg = "FOC faible (moins de 10 %)"; color = "var(--warn)"; }
+    else if (foc > 15) { msg = "FOC élevé (plus de 15 %)";   color = "var(--red)"; }
+    else               { msg = "FOC dans la plage idéale";   color = "var(--green)"; }
+    result.style.color = color; status.style.color = color; status.textContent = msg;
+  }
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (document.activeElement) document.activeElement.blur(); // ferme le clavier
+    calculate();
+  });
+  inA.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); inB.focus(); }
+  });
+
+  // Mémorise les dernières mesures
+  inA.addEventListener("input", function () { store(KEY_A, inA.value); });
+  inB.addEventListener("input", function () { store(KEY_B, inB.value); });
+  inA.value = load(KEY_A); inB.value = load(KEY_B);
+  if (inA.value && inB.value) calculate();
+
+  // Fonctionnement hors ligne
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>
